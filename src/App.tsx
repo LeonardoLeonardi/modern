@@ -12,42 +12,43 @@ interface Action {
   index: number;
 }
 
-const peopleArray = new Array(10)
-  .fill({})
-  .map((list) => ({ name: faker.name.findName(), favorite: false }));
-
 function reducer(state: any, action: Action) {
   switch (action.type) {
     case 'Add':
       const newPerson = { name: faker.name.findName(), favorite: false };
-      state([...state, newPerson]);
-      return state;
+      state.push(newPerson);
+      return;
+      break;
     case 'Remove':
-      return state(
-        state.filter((list: any, index: number) => index !== action.index),
-      );
+      state.filter((list: any, index: number) => index !== action.index);
+      break;
     case 'MoveUp':
-      return {};
+      state = arrayMove(state, action.index - 1, action.index);
+      break;
     case 'MoveDown':
-      return {};
+      state = arrayMove(state, action.index + 1, action.index);
+      break;
     case 'Favorite':
-      return {};
+      update(state, `${action.index}.favorite`, (prev: boolean) => !prev);
+      break;
     default:
       throw new Error();
   }
+  return state;
 }
+
 function App(props: Item) {
-  /* const [people, setPeople] = useState(
-    new Array(10)
-      .fill({})
-      .map((list) => ({ name: faker.name.findName(), favorite: false })),
-  ); */
+  const peopleArray = new Array(10)
+    .fill({})
+    .map((list) => ({ name: faker.name.findName(), favorite: false }));
+
   const [state, dispatch] = useReducer(reducer, peopleArray);
+
   function ButtonAdd() {
     return (
       <div
         className="align-middle text-center bg-indigo-600 cursor-pointer rounded-lg m-2 p-2 text-white"
-        onClick={() => dispatch({ type: 'Add', i: NaN })}
+        onClick={() => dispatch({ type: 'Add', index: NaN })}
       >
         Add
       </div>
@@ -57,11 +58,11 @@ function App(props: Item) {
   return (
     <div>
       <People
-        /* people={people} */
-        onClickRemove={(index) => dispatch({ type: 'Remove', i: index })}
-        /* onClickUp={(index) => handleMoveUp(index)}
-        onClickDown={(index) => handleMoveDown(index)}
-        onClickFavorite={(index) => handleFavorite(index)} */
+        people={peopleArray}
+        onClickRemove={(index) => dispatch({ type: 'Remove', index })}
+        onClickUp={(index) => dispatch({ type: 'MoveUp', index })}
+        onClickDown={(index) => dispatch({ type: 'MoveDown', index })}
+        onClickFavorite={(index) => dispatch({ type: 'Favorite', index })}
       />
       <ButtonAdd />
     </div>

@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import ClassNames from 'classnames';
 
 interface P {
-  /* people: { name: string; favorite: boolean }[]; */
+  people: { name: string; favorite: boolean }[];
   onClickRemove: (index: number) => void;
-  /* onClickUp: (index: number) => void;
+  onClickUp: (index: number) => void;
   onClickDown: (index: number) => void;
-  onClickFavorite: (index: number) => void; */
+  onClickFavorite: (index: number) => void;
 }
 interface ButtonP {
   text: string;
@@ -83,12 +83,12 @@ function People(props: P) {
               text="Remove"
               onClick={() => props.onClickRemove(index)}
             />
-            {/* <ButtonUp text="Up" onClick={() => props.onClickUp(index)} />
+            <ButtonUp text="Up" onClick={() => props.onClickUp(index)} />
             <ButtonDown text="Down" onClick={() => props.onClickDown(index)} />
             <ButtonFavorite
               text="Favorite"
               onClick={() => props.onClickFavorite(index)}
-            /> */}
+            />
           </div>
         </div>
       ))}

@@ -16,8 +16,6 @@ const peopleArray = new Array(10)
   .fill({})
   .map((list) => ({ name: faker.name.findName(), favorite: false }));
 
-const [state, dispatch] = useReducer(reducer, peopleArray);
-
 function reducer(state: any, action: Action) {
   switch (action.type) {
     case 'Add':
@@ -44,7 +42,7 @@ function App(props: Item) {
       .fill({})
       .map((list) => ({ name: faker.name.findName(), favorite: false })),
   ); */
-
+  const [state, dispatch] = useReducer(reducer, peopleArray);
   function ButtonAdd() {
     return (
       <div

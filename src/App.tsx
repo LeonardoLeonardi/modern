@@ -3,7 +3,7 @@ import './App.css';
 import faker from 'faker';
 import arrayMove from 'array-move';
 import People from './People';
-import { update, set, clone } from 'lodash';
+import _ from 'lodash/fp';
 
 interface Item {
   name: string;
@@ -13,24 +13,29 @@ interface Item {
 interface Action {
   type: string;
   index: number;
+  nameManual?: any;
 }
 
 function reducer(state: Item[], action: Action) {
   switch (action.type) {
+    case 'AddManual':
+      //const newPersonManual = { name: action.nameManual, favorite: false };
+      //return [...state, newPersonManual];
+      break;
     case 'Add':
       const newPerson = { name: faker.name.findName(), favorite: false };
       return [...state, newPerson];
     case 'Remove':
-      return state.filter((list: any, index: number) => index !== action.index);
+      return _.pullAt(action.index, state);
     case 'MoveUp':
       return arrayMove(state, action.index - 1, action.index);
     case 'MoveDown':
       return arrayMove(state, action.index + 1, action.index);
     case 'Favorite':
-      return update(
-        [...state],
+      return _.update(
         `${action.index}.favorite`,
         (prev: boolean) => !prev,
+        state,
       );
     default:
       throw new Error();
@@ -41,7 +46,7 @@ const peopleArray: Item[] = new Array(10)
   .fill({})
   .map((list) => ({ name: faker.name.findName(), favorite: false }));
 
-function App(props: Item) {
+function App() {
   const [state, dispatch] = useReducer(reducer, peopleArray);
 
   function ButtonAdd() {
@@ -51,6 +56,36 @@ function App(props: Item) {
         onClick={() => dispatch({ type: 'Add', index: NaN })}
       >
         Add
+      </div>
+    );
+  }
+  function ButtonAddManual() {
+    return (
+      <div className="flex m-2">
+        <div>
+          <form>
+            <label className="text-lg bg-indigo-600">
+              Nome:
+              <input
+                className="border-gray-200 border-2 "
+                type="text"
+                name="username"
+              />
+            </label>
+            <input
+              className="align-middle text-center bg-indigo-600 cursor-pointer rounded-lg m-2 p-2 text-white"
+              type="button"
+              value="Submit"
+              onClick={(e) =>
+                dispatch({
+                  type: 'AddManual',
+                  index: NaN,
+                  nameManual: e,
+                })
+              }
+            />
+          </form>
+        </div>
       </div>
     );
   }
@@ -65,6 +100,7 @@ function App(props: Item) {
         onClickFavorite={(index) => dispatch({ type: 'Favorite', index })}
       />
       <ButtonAdd />
+      <ButtonAddManual />
     </div>
   );
 }

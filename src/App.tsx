@@ -25,6 +25,8 @@ function reducer(state: Item[], action: Action) {
     case 'Add':
       const newPerson = { name: faker.name.findName(), favorite: false };
       return [...state, newPerson];
+    case 'Order':
+      return _.sortBy(state, ['name']);
     case 'Remove':
       return _.pullAt(action.index, state);
     case 'MoveUp':
@@ -97,6 +99,7 @@ function App() {
         onClickRemove={(index) => dispatch({ type: 'Remove', index })}
         onClickUp={(index) => dispatch({ type: 'MoveUp', index })}
         onClickDown={(index) => dispatch({ type: 'MoveDown', index })}
+        onClickOrder={(index) => dispatch({ type: 'Order', index })}
         onClickFavorite={(index) => dispatch({ type: 'Favorite', index })}
       />
       <ButtonAdd />

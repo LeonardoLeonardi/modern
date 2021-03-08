@@ -7,6 +7,7 @@ interface P {
   onClickUp: (index: number) => void;
   onClickDown: (index: number) => void;
   onClickFavorite: (index: number) => void;
+  onClickOrder: (index: number) => void;
 }
 interface ButtonP {
   text: string;
@@ -15,6 +16,16 @@ interface ButtonP {
 interface F {
   name: string;
   favorite: boolean;
+}
+function ButtonOrder(P: ButtonP) {
+  return (
+    <button
+      className="m-2 bg-indigo-400 rounded-lg px-2"
+      onClick={() => P.onClick()}
+    >
+      Order
+    </button>
+  );
 }
 function ButtonRemove(P: ButtonP) {
   return (
@@ -90,6 +101,11 @@ function People(props: P) {
         >
           <IsFavorite name={person.name} favorite={person.favorite} />
           <div>
+            <ButtonOrder
+              text="Order"
+              onClick={() => props.onClickOrder(index)}
+            />
+
             <ButtonRemove
               text="Remove"
               onClick={() => props.onClickRemove(index)}

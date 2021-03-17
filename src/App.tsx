@@ -1,134 +1,198 @@
-import React, { useState, useReducer } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import './App.css';
-import faker from 'faker';
+import classNames from 'classnames';
 import arrayMove from 'array-move';
-import People from './People';
 import _ from 'lodash/fp';
 
 interface Item {
-  name: string;
-  favorite: boolean;
+  status: 'stopped' | 'started' | 'paused';
+  seconds: number;
+  laps: number[];
 }
-
 interface Action {
-  type: string;
-  index: number;
-  nameManual?: any;
+  type: 'start' | 'stop' | 'pause' | 'reset' | 'lap' | 'interval';
+  payload?: {};
 }
-
-function reducer(state: Item[], action: Action) {
+const timerState: Item = {
+  status: 'stopped',
+  seconds: 0,
+  laps: new Array(10).fill(0),
+};
+function reducer(state: Item, action: Action): Item {
   switch (action.type) {
-    case 'AddManual':
-      //const newPersonManual = { name: action.nameManual, favorite: false };
-      //return [...state, newPersonManual];
-      break;
-    case 'Add':
-      const newPerson = { name: faker.name.findName(), favorite: false };
-      return [...state, newPerson];
-    case 'Order':
-      return _.sortBy(state, ['name']);
-    case 'Remove':
-      return _.pullAt(action.index, state);
-    case 'MoveUp':
-      return arrayMove(state, action.index - 1, action.index);
-    case 'MoveDown':
-      return arrayMove(state, action.index + 1, action.index);
-    case 'Favorite':
-      return _.update(
-        `${action.index}.favorite`,
-        (prev: boolean) => !prev,
-        state,
-      );
-    default:
-      throw new Error();
+    case 'interval':
+      return { ...state, seconds: state.seconds + 1 };
+    case 'start':
+      return { ...state, status: 'started' };
+    case 'stop':
+      return { ...state, status: 'stopped' };
+    case 'pause':
+      return { ...state, status: 'paused' };
+    case 'reset':
+      return { status: 'stopped', laps: [], seconds: 0 };
+    case 'lap':
+      return { ...state, laps: [...state.laps, state.seconds], seconds: 0 };
   }
   return state;
 }
-const peopleArray: Item[] = new Array(10)
-  .fill({})
-  .map((list) => ({ name: faker.name.findName(), favorite: false }));
+
+function useHookTimer() {
+  const [state, dispatch] = useReducer(reducer, timerState);
+  function ButtonStart(props: Item) {
+    const styleStart = classNames(
+      ' text-white rounded px-4 mx-1 my-2',
+      props.status === 'started' ? 'bg-gray-700' : 'bg-green-700',
+    );
+
+    return (
+      <button
+        onClick={() => {
+          /* setPaused(false);
+          setState('start'); */
+          dispatch({ type: 'start' });
+        }}
+        className={styleStart}
+        disabled={props.status === 'started' ? true : false}
+      >
+        Start
+      </button>
+    );
+  }
+  function ButtonStop(props: Item) {
+    const styleStop = classNames(' text-white rounded px-4 mx-1 my-2', {
+      'bg-red-700': props.status === 'started' || props.status === 'paused',
+      'bg-gray-700': props.status === 'stopped',
+    });
+
+    return (
+      <button
+        onClick={() => {
+          /* setPaused(true);
+          setStopped(true);
+          setState('stop'); */
+          dispatch({ type: 'stop' });
+        }}
+        className={styleStop}
+        disabled={props.status === 'stopped' ? true : false}
+      >
+        Stop
+      </button>
+    );
+  }
+  function ButtonPause(props: Item) {
+    const stylePause = classNames(' text-white rounded px-4 mx-1 my-2', {
+      'bg-blue-700': props.status !== 'stopped',
+      'bg-gray-700': props.status === 'stopped',
+    });
+
+    return (
+      <button
+        onClick={() => {
+          /* setPaused(true);
+          setState('pause'); */
+          dispatch({ type: 'pause' });
+        }}
+        className={stylePause}
+        disabled={
+          props.status === 'paused' || props.status === 'stopped' ? true : false
+        }
+      >
+        Pause
+      </button>
+    );
+  }
+  function ButtonLap(props: Item) {
+    const styleLap = classNames(' text-white rounded px-4 mx-1 my-2', {
+      'bg-blue-700': props.status !== 'stopped',
+      'bg-gray-700': props.status === 'stopped',
+    });
+
+    return (
+      <button
+        onClick={() => {
+          /* setLap([...lap, seconds]);
+          setSeconds(0); */
+          dispatch({ type: 'lap' });
+        }}
+        className={styleLap}
+        disabled={props.status === 'stopped' ? true : false}
+      >
+        Lap
+      </button>
+    );
+  }
+  function ButtonReset(props: Item) {
+    return (
+      <button
+        onClick={() => {
+          // setSeconds(0);
+          /* setState('start'); */
+          dispatch({ type: 'reset' });
+        }}
+        className="bg-indigo-600 text-white rounded px-4 mx-1 my-2"
+      >
+        Reset
+      </button>
+    );
+  }
+
+  useEffect(() => {
+    if (state.status === 'paused') {
+      return;
+    }
+    if (state.status === 'stopped') {
+      return;
+    }
+    console.log(state.status);
+    const interval = setInterval(() => {
+      dispatch({ type: 'interval' });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [state.status]);
+
+  return {
+    ButtonStart,
+    ButtonStop,
+    ButtonPause,
+    ButtonLap,
+    ButtonReset,
+    state,
+  };
+}
 
 function App() {
-  const [state, dispatch] = useReducer(reducer, peopleArray);
-
-  function ButtonAdd() {
-    return (
-      <div
-        className="align-middle text-center bg-indigo-600 cursor-pointer rounded-lg m-2 p-2 text-white"
-        onClick={() => dispatch({ type: 'Add', index: NaN })}
-      >
-        Add
-      </div>
-    );
-  }
-  function ButtonAddManual() {
-    return (
-      <div className="flex m-2">
-        <div>
-          <form>
-            <label className="text-lg bg-indigo-600">
-              Nome:
-              <input
-                className="border-gray-200 border-2 "
-                type="text"
-                name="username"
-              />
-            </label>
-            <input
-              className="align-middle text-center bg-indigo-600 cursor-pointer rounded-lg m-2 p-2 text-white"
-              type="button"
-              value="Submit"
-              onClick={(e) =>
-                dispatch({
-                  type: 'AddManual',
-                  index: NaN,
-                  nameManual: e,
-                })
-              }
-            />
-          </form>
-        </div>
-      </div>
-    );
-  }
+  const {
+    ButtonStart,
+    ButtonStop,
+    ButtonPause,
+    ButtonLap,
+    ButtonReset,
+    state,
+  } = useHookTimer();
 
   return (
     <div>
-      <People
-        people={state}
-        onClickRemove={(index) => dispatch({ type: 'Remove', index })}
-        onClickUp={(index) => dispatch({ type: 'MoveUp', index })}
-        onClickDown={(index) => dispatch({ type: 'MoveDown', index })}
-        onClickOrder={(index) => dispatch({ type: 'Order', index })}
-        onClickFavorite={(index) => dispatch({ type: 'Favorite', index })}
-      />
-      <ButtonAdd />
-      <ButtonAddManual />
+      <div>
+        <ButtonStart {...state} />
+        <ButtonStop {...state} />
+        <ButtonPause {...state} />
+        <ButtonLap {...state} />
+        <ButtonReset {...state} />
+      </div>
+      {/*----MAP----*/}
+      <div className="p-2">Timer: {state.seconds} secondi</div>
+      {state.laps.map((time: number, index: number) => {
+        if (time != 0) {
+          return (
+            <div className="px-2 py-1" key={index}>
+              Timer lap: {time} secondi
+            </div>
+          );
+        }
+      })}
     </div>
   );
 }
 
 export default App;
-
-/*   function handleFavorite(i: number) {
-    update(people, `${i}.favorite`, (prev: boolean) => !prev);
-    setPeople([...people]);
-    /*     setPeople((prev) => update(`${i}.favorite`, (p: boolean) => !p, prev));
-  }*/
-/* function handleAdd() {
-    const newPerson = { name: faker.name.findName(), favorite: false };
-    setPeople([...people, newPerson]);
-  }
-  function handleRemove(i: number) {
-    setPeople(people.filter((list, index) => index !== i));
-  } */
-/*  function handleMoveUp(i: number) {
-    const peopleUp = arrayMove(people, i - 1, i);
-    setPeople(peopleUp);
-  }
-  function handleMoveDown(i: number) {
-    const peopleDown = arrayMove(people, i + 1, i);
-    setPeople(peopleDown);
-  }
-  
- */

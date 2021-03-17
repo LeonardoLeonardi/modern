@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer } from 'react';
+import React, { useState, useEffect, useReducer, useCallback } from 'react';
 import './App.css';
 import classNames from 'classnames';
 import arrayMove from 'array-move';
@@ -18,6 +18,7 @@ const timerState: Item = {
   seconds: 0,
   laps: new Array(10).fill(0),
 };
+
 function reducer(state: Item, action: Action): Item {
   switch (action.type) {
     case 'interval':
@@ -38,7 +39,8 @@ function reducer(state: Item, action: Action): Item {
 
 function useHookTimer() {
   const [state, dispatch] = useReducer(reducer, timerState);
-  function ButtonStart(props: Item) {
+
+  const ButtonStart = useCallback((props: Item) => {
     const styleStart = classNames(
       ' text-white rounded px-4 mx-1 my-2',
       props.status === 'started' ? 'bg-gray-700' : 'bg-green-700',
@@ -48,7 +50,7 @@ function useHookTimer() {
       <button
         onClick={() => {
           /* setPaused(false);
-          setState('start'); */
+      setState('start'); */
           dispatch({ type: 'start' });
         }}
         className={styleStart}
@@ -57,13 +59,12 @@ function useHookTimer() {
         Start
       </button>
     );
-  }
-  function ButtonStop(props: Item) {
+  }, []);
+  const ButtonStop = useCallback((props: Item) => {
     const styleStop = classNames(' text-white rounded px-4 mx-1 my-2', {
       'bg-red-700': props.status === 'started' || props.status === 'paused',
       'bg-gray-700': props.status === 'stopped',
     });
-
     return (
       <button
         onClick={() => {
@@ -78,8 +79,8 @@ function useHookTimer() {
         Stop
       </button>
     );
-  }
-  function ButtonPause(props: Item) {
+  }, []);
+  const ButtonPause = useCallback((props: Item) => {
     const stylePause = classNames(' text-white rounded px-4 mx-1 my-2', {
       'bg-blue-700': props.status !== 'stopped',
       'bg-gray-700': props.status === 'stopped',
@@ -100,8 +101,8 @@ function useHookTimer() {
         Pause
       </button>
     );
-  }
-  function ButtonLap(props: Item) {
+  }, []);
+  const ButtonLap = useCallback((props: Item) => {
     const styleLap = classNames(' text-white rounded px-4 mx-1 my-2', {
       'bg-blue-700': props.status !== 'stopped',
       'bg-gray-700': props.status === 'stopped',
@@ -120,8 +121,8 @@ function useHookTimer() {
         Lap
       </button>
     );
-  }
-  function ButtonReset(props: Item) {
+  }, []);
+  const ButtonReset = useCallback((props: Item) => {
     return (
       <button
         onClick={() => {
@@ -134,7 +135,7 @@ function useHookTimer() {
         Reset
       </button>
     );
-  }
+  }, []);
 
   useEffect(() => {
     if (state.status === 'paused') {

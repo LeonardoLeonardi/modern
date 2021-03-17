@@ -24,6 +24,9 @@ function reducer(state: Item, action: Action): Item {
     case 'interval':
       return { ...state, seconds: state.seconds + 1 };
     case 'start':
+      if (state.status === 'stopped') {
+        state.seconds = 0;
+      }
       return { ...state, status: 'started' };
     case 'stop':
       return { ...state, status: 'stopped' };

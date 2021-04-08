@@ -10,7 +10,22 @@ import React, {
 import 'normalize.css';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
-import { Intent, Spinner, Button, AnchorButton, Icon } from '@blueprintjs/core';
+import {
+  Classes,
+  Alignment,
+  Intent,
+  Spinner,
+  Button,
+  AnchorButton,
+  Icon,
+  Card,
+  Toast,
+  Navbar,
+  NavbarDivider,
+  NavbarGroup,
+  NavbarHeading,
+  Callout,
+} from '@blueprintjs/core';
 
 import * as Blueprint from '@blueprintjs/core';
 import './App.css';
@@ -209,7 +224,7 @@ function App() {
 
   const runBusinessLogic = useBusinessLogic(commands, events, emitEvent);
 
-  const numBulb = new Array(2).fill([0]);
+  const numBulb = new Array(3).fill([0]);
 
   useEffect(() => {
     runBusinessLogic();
@@ -217,58 +232,77 @@ function App() {
 
   const isContatoreTurnedOn = isContatoreOn(events);
   return (
-    <div className="flex justify-center items-center align-middle">
-      <div className="m-5 ml-0">
-        <Icon
-          icon="offline"
-          iconSize={100}
-          className="p-10 w-44 text-center ml-16"
-          color={isContatoreTurnedOn ? 'blue' : 'gray'}
-        />
+    <>
+      <Navbar className="shadow-lg bp3-dark">
+        <NavbarGroup>
+          <NavbarHeading>Lampadine di casa Leonardi</NavbarHeading>
+          <NavbarDivider />
+          <Button className={Classes.MINIMAL} icon="home" text="Home" />
+        </NavbarGroup>
+      </Navbar>
+      <div className="flex flex-col justify-center items-center align-middle pt-5">
+        <Card interactive={true} className="m-2">
+          <Icon
+            icon="offline"
+            iconSize={100}
+            className="p-10 w-44 text-center ml-20"
+            color={isContatoreTurnedOn ? 'purple' : 'gray'}
+          />
 
-        <div className="items-center">
-          <Buttonee
-            className="success"
-            title="Accendi contatore"
-            icon="layer"
-            onClick={() => sendCommand('ACCENDI_CONTATORE')}
-          />
-          <Buttonee
-            className="danger"
-            title="Spegni contatore"
-            icon="layer-outline"
-            onClick={() => sendCommand('SPEGNI_CONTATORE')}
-          />
+          <div className="items-center m-3">
+            <Buttonee
+              className="success"
+              title="Accendi contatore"
+              icon="layer"
+              onClick={() => sendCommand('ACCENDI_CONTATORE')}
+            />
+            <Buttonee
+              className="danger"
+              title="Spegni contatore"
+              icon="layer-outline"
+              onClick={() => sendCommand('SPEGNI_CONTATORE')}
+            />
+          </div>
+          <div className="m-1 mt-4">{SecondsLightOnLastMinute(events)}</div>
+        </Card>
+        <div className="flex-col ">
+          <div className="flex items-center justify-center ">
+            {numBulb.map((numBulb, index) => (
+              <>
+                <Card interactive={true} className="m-2">
+                  <Lampadina
+                    isTurnedOn={isLightOn(events, index) && isContatoreTurnedOn}
+                    index={index}
+                  />
+                  <div className="flex mb-1">
+                    <Buttonee
+                      className="warning"
+                      title="Accendi"
+                      icon="eye-on"
+                      onClick={() => sendCommand('ACCENDI_LAMPADINA', index)}
+                    />
+                    <Buttonee
+                      className="none"
+                      title="Spegni"
+                      icon="eye-off"
+                      onClick={() => sendCommand('SPEGNI_LAMPADINA', index)}
+                    />
+                  </div>
+                </Card>
+              </>
+            ))}
+          </div>
+          <Callout
+            intent="warning"
+            icon="offline"
+            title={'Promemoria importante'}
+            className="max-w-2xl m-2"
+          >
+            Ricordati che devi pagare la bolletta! :)
+          </Callout>
         </div>
       </div>
-      <div className="flex-col">
-        <div className="flex items-center justify-center">
-          {numBulb.map((numBulb, index) => (
-            <div className="flex flex-col items-center mr-5">
-              <Lampadina
-                isTurnedOn={isLightOn(events, index) && isContatoreTurnedOn}
-                index={index}
-              />
-              <div className="flex">
-                <Buttonee
-                  className="warning"
-                  title="Accendi"
-                  icon="eye-on"
-                  onClick={() => sendCommand('ACCENDI_LAMPADINA', index)}
-                />
-                <Buttonee
-                  className="none"
-                  title="Spegni"
-                  icon="eye-off"
-                  onClick={() => sendCommand('SPEGNI_LAMPADINA', index)}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="m-1 mt-4">{SecondsLightOnLastMinute(events)}</div>
-      </div>
-    </div>
+    </>
   );
 }
 

@@ -1,22 +1,14 @@
 import React, { useState, useReducer, useEffect } from 'react';
 import './App.css';
-import _, { result } from 'lodash/fp';
-import classNames from 'classnames';
-import { DateTime, Interval } from 'luxon';
-import { v4 } from 'uuid';
-import { GraphQLClient, gql } from 'graphql-request';
+/* import _, { result } from 'lodash/fp';
+ */ import classNames from 'classnames';
+import { DateTime } from 'luxon';
+/* import { v4 } from 'uuid';
+ */ import { GraphQLClient, gql } from 'graphql-request';
 import 'normalize.css';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
-import {
-  Button,
-  Classes,
-  Dialog,
-  FormGroup,
-  Icon,
-  InputGroup,
-  NumericInput,
-} from '@blueprintjs/core';
+import { Button, Classes, Dialog, InputGroup } from '@blueprintjs/core';
 
 interface DataTransaction {
   id: string;
@@ -190,11 +182,12 @@ function PeopleCard(props: {
     </div>
   );
 }
+
 function App() {
   const [transaction, setTransaction] = useState<DataTransaction[]>([]);
   const [isOpenDialogEarn, setIsOpenDialogEarn] = useState<boolean>(false);
-  const [dataEarnUser, setDataEarnUser] = useState<string>('');
-  const [dataEarnCredit, setDataEarnCredit] = useState<number>(0);
+  const [dataUser, setDataUser] = useState<string>('');
+  const [dataCredit, setDataCredit] = useState<number>(0);
   const [isOpenDialogUsed, setIsOpenDialogUsed] = useState<boolean>(false);
   const [user, setUser] = useState<string[]>([]);
   const [balance, setBalance] = useState<number>(0);
@@ -218,6 +211,51 @@ function App() {
 
   return (
     <div className="bg-gray-300 w-screen h-screen flex flex-row justify-center items-center">
+      {/* DIALOG USE CREDIT */}
+      <Dialog
+        icon="remove"
+        isOpen={isOpenDialogUsed}
+        isCloseButtonShown={true}
+        onClose={() => setIsOpenDialogUsed(false)}
+        onClosing={() => setIsOpenDialogUsed(false)}
+        onClosed={() => setIsOpenDialogUsed(false)}
+        canOutsideClickClose={true}
+        title="Use Credit"
+      >
+        <div className="m-5 flex flex-row justify-around">
+          <div>
+            <label className="ml-2">User</label>
+            <InputGroup
+              id="text-input"
+              placeholder="User"
+              round={true}
+              onChange={(event) => setDataUser(event.target.value)}
+            />
+          </div>
+          <div>
+            <label className="ml-2">Amount</label>
+            <InputGroup
+              placeholder="Amount"
+              round={true}
+              onChange={(event) => setDataCredit(Number(event.target.value))}
+            />
+          </div>
+        </div>
+        <div className={Classes.DIALOG_FOOTER}>
+          <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+            <Button onClick={() => setIsOpenDialogUsed(false)}>Close</Button>
+            <Button
+              onClick={() => {
+                setIsOpenDialogUsed(false);
+                useCredit(dataUser, dataCredit);
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+      {/* DIALOG EARN CREDIT */}
       <Dialog
         icon="add"
         isOpen={isOpenDialogEarn}
@@ -235,7 +273,7 @@ function App() {
               id="text-input"
               placeholder="User"
               round={true}
-              onChange={(event) => setDataEarnUser(event.target.value)}
+              onChange={(event) => setDataUser(event.target.value)}
             />
           </div>
           <div>
@@ -243,9 +281,7 @@ function App() {
             <InputGroup
               placeholder="Amount"
               round={true}
-              onChange={(event) =>
-                setDataEarnCredit(Number(event.target.value))
-              }
+              onChange={(event) => setDataCredit(Number(event.target.value))}
             />
           </div>
         </div>
@@ -255,7 +291,7 @@ function App() {
             <Button
               onClick={() => {
                 setIsOpenDialogEarn(false);
-                earnCredit(dataEarnUser, dataEarnCredit);
+                earnCredit(dataUser, dataCredit);
               }}
             >
               Save

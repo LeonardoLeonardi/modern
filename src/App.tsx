@@ -245,6 +245,7 @@ function App() {
           <div className={Classes.DIALOG_FOOTER_ACTIONS}>
             <Button onClick={() => setIsOpenDialogUsed(false)}>Close</Button>
             <Button
+              intent="success"
               onClick={() => {
                 setIsOpenDialogUsed(false);
                 useCredit(dataUser, dataCredit);
@@ -289,6 +290,7 @@ function App() {
           <div className={Classes.DIALOG_FOOTER_ACTIONS}>
             <Button onClick={() => setIsOpenDialogEarn(false)}>Close</Button>
             <Button
+              intent="success"
               onClick={() => {
                 setIsOpenDialogEarn(false);
                 earnCredit(dataUser, dataCredit);
@@ -339,14 +341,14 @@ function App() {
         <Header name={'transaction'} />
         <div className="overflow-y-auto h-5/6 overflow-x-hidden">
           <div className="flex flex-col   text-gray-600 py-1 px-3 ">
+            <p className="text-xl font-semibold mx-3 text-center text-gray-800">
+              This account has {balance} credits
+            </p>
             {transaction.map((data, index) => (
               <TransactionCard value={data.amount} date={data.creditDate} />
             ))}
           </div>
         </div>
-        <p className="text-1xl font-semibold mx-3 text-center text-gray-800">
-          This account has {balance} credits
-        </p>
       </div>
     </div>
   );

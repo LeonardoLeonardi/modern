@@ -337,7 +337,7 @@ function App() {
         </div>
       </div>
 
-      <div className="bg-gray-200 rounded-md w-1/3 max-w-md h-4/6 shadow-xl ">
+      <div className="bg-gray-200 rounded-md w-1/5 max-w-md h-3/6 shadow-xl ">
         <Header name={'transaction'} />
         <div className="overflow-y-auto h-5/6 overflow-x-hidden">
           <div className="flex flex-col   text-gray-600 py-1 px-3 ">

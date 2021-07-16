@@ -1,317 +1,318 @@
 import React, { useState, useReducer, useEffect } from 'react';
-
 import './App.css';
-import _ from 'lodash/fp';
+import _, { result } from 'lodash/fp';
 import classNames from 'classnames';
 import { DateTime, Interval } from 'luxon';
 import { v4 } from 'uuid';
+import { GraphQLClient, gql } from 'graphql-request';
 import 'normalize.css';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
 import {
-  Classes,
-  Alignment,
-  Intent,
-  Spinner,
   Button,
-  AnchorButton,
+  Classes,
+  Dialog,
+  FormGroup,
   Icon,
-  Card,
-  Toast,
-  Navbar,
-  NavbarDivider,
-  NavbarGroup,
-  NavbarHeading,
-  Callout,
-  IconName,
-  TextArea,
   InputGroup,
-  Menu,
-  MenuItem,
-  MenuDivider,
-  Popover,
-  Position,
-  Tab,
-  Tabs,
-  Drawer,
-  Divider,
+  NumericInput,
 } from '@blueprintjs/core';
-import '@blueprintjs/datetime/lib/css/blueprint-datetime.css';
-import { FocusStyleManager } from '@blueprintjs/core';
-import { TimezonePicker } from '@blueprintjs/timezone';
-FocusStyleManager.onlyShowFocusOnTabs();
 
-function App() {
-  const [isOpen, setIsOpen] = useState(false);
+interface DataTransaction {
+  id: string;
+  amount: number;
+  userId: string;
+  time: string;
+  creditDate: string;
+  delayed: boolean;
+}
+
+async function earnCredit(userId: string, amount: number): Promise<number> {
+  const endpoint = 'https://dev.graphql-v2.keix.com/graphql';
+
+  const query = gql`
+    mutation {
+      earnCredits(id: "${userId}",amount:${amount})
+    }
+  `;
+
+  // ... or create a GraphQL client instance to send requests
+  const client = new GraphQLClient(endpoint, { headers: {} });
+  const graph = client.request(query).then((data) => {
+    return data.getUserBalance;
+  });
+  return await graph;
+}
+async function useCredit(userId: string, amount: number): Promise<number> {
+  const endpoint = 'https://dev.graphql-v2.keix.com/graphql';
+
+  const query = gql`
+    mutation {
+      useCredits(id: "${userId}",amount:${amount})
+    }
+  `;
+
+  // ... or create a GraphQL client instance to send requests
+  const client = new GraphQLClient(endpoint, { headers: {} });
+  const graph = client.request(query).then((data) => {
+    return data.getUserBalance;
+  });
+  return await graph;
+}
+async function getBalance(userId: string): Promise<number> {
+  const endpoint = 'https://dev.graphql-v2.keix.com/graphql';
+
+  const query = gql`
+    query {getUserBalance(id:"${userId}")}
+  `;
+
+  // ... or create a GraphQL client instance to send requests
+  const client = new GraphQLClient(endpoint, { headers: {} });
+  const graph = client.request(query).then((data) => {
+    return data.getUserBalance;
+  });
+  return await graph;
+}
+async function getUser(): Promise<DataTransaction[]> {
+  const endpoint = 'https://dev.graphql-v2.keix.com/graphql';
+
+  const query = gql`
+    query {
+      userTransactions(limit: 100) {
+        items {
+          id
+          amount
+          userId
+          time
+          creditDate
+          delayed
+        }
+      }
+    }
+  `;
+
+  // ... or create a GraphQL client instance to send requests
+  const client = new GraphQLClient(endpoint, { headers: {} });
+  const graph = client.request(query).then((data) => {
+    return data.userTransactions.items;
+  });
+  return await graph;
+}
+async function getTransaction(filter: string): Promise<DataTransaction[]> {
+  const endpoint = 'https://dev.graphql-v2.keix.com/graphql';
+  let query = '';
+  if (filter.length > 0) {
+    query = gql`
+    query{
+      userTransactions(filters:{filters:[{attributeName:"userId",filters:[{op:"=",value:"${filter}"}]}]}) {
+        items{
+          id
+          amount
+          userId
+          time
+          creditDate
+          delayed
+        }
+      }
+    }
+    `;
+  } else {
+    query = gql`
+      query {
+        userTransactions(limit: 100) {
+          items {
+            id
+            amount
+            userId
+            time
+            creditDate
+            delayed
+          }
+        }
+      }
+    `;
+  }
+
+  // ... or create a GraphQL client instance to send requests
+  const client = new GraphQLClient(endpoint, { headers: {} });
+  const graph = client.request(query).then((data) => {
+    return data.userTransactions.items;
+  });
+  return await graph;
+}
+
+function Header(props: { name: string }) {
   return (
-    <div className="bg-gray-100">
-      <Navbar className={Classes.DARK}>
-        <NavbarGroup>
-          <NavbarHeading>
-            <label className="font-semibold">Leonardi's shop </label>
-            <Icon icon="shop" iconSize={16} intent="none" />
-          </NavbarHeading>
-          <TimezonePicker
-            className="mr-2"
-            popoverProps={{ position: Position.BOTTOM }}
-            showLocalTimezone={false}
-            placeholder="scegli la zona..."
-          ></TimezonePicker>
-          <InputGroup
-            asyncControl={true}
-            large={true}
-            leftIcon="search"
-            placeholder="Cerca un prodotto..."
-          />
-        </NavbarGroup>
-        <NavbarGroup align="right">
-          <Menu large={false} className="p-0 min-w-0 ">
-            <MenuItem text="Account" icon="people" className={Classes.MINIMAL}>
-              <MenuItem text="Il mio account">
-                <MenuItem text="I miei ordini"></MenuItem>
-              </MenuItem>
-              <Menu.Divider />
-              <MenuItem text="Lista">
-                <MenuItem text="Pc" />
-                <MenuItem text="SmartHome" />
-              </MenuItem>
-            </MenuItem>
-          </Menu>
-          <Button className={Classes.MINIMAL} icon="compressed" text="Resi" />
-          <NavbarDivider />
-          <Button
-            className={Classes.MINIMAL}
-            icon="shopping-cart"
-            text="Carrello"
-            onClick={() => setIsOpen(true)}
-          ></Button>
-          <Drawer
-            icon="shopping-cart"
-            isOpen={isOpen}
-            title="Carrello"
-            isCloseButtonShown={true}
-            onClose={() => setIsOpen(false)}
-            onClosing={() => setIsOpen(false)}
-            onClosed={() => setIsOpen(false)}
-            canOutsideClickClose={true}
-          >
-            <div className={Classes.DRAWER_BODY}>
-              <div className={Classes.DIALOG_BODY}>
-                <p>
-                  <strong>Elementi nel carrello:</strong>
-                </p>
-                <Card interactive={true} className="m-4 flex ">
-                  <img
-                    src="https://images-eu.ssl-images-amazon.com/images/G/29/kindle/journeys/NjkzM2MxYWEt/NjkzM2MxYWEt-MzFhNzkxYTMt-w186._SY116_CB660760342_.jpg"
-                    alt=""
-                    className="object-cover "
-                  />
-                  <div className="mx-2">
-                    <h1 className="text-2xl font-semibold  text-blue-600">
-                      Amazon echo di 3 gen...
-                    </h1>
-                    <p className="text-green-700">disponibilità immediata</p>
-                    <div className="flex mt-3 cursor-pointer ">
-                      <p className="hover:text-blue-700" /* onClick={} */>
-                        Rimuovi
-                      </p>
-                      <Divider />
-                      <p className="hover:text-blue-700">
-                        Sposta in elementi salvati
-                      </p>
-                      <Divider />
-                      <p className="hover:text-blue-700">
-                        Sposta lista dei desideri
-                      </p>
-                      <Divider />
-                      <p className="hover:text-blue-700">
-                        Mostra articoli simili
-                      </p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </div>
-            <div className={Classes.DRAWER_FOOTER}>
-              <div className="flex items-center justify-around ">
-                <p className="font-semibold text-lg">Prezzo totale: 999€</p>
-                <Button className="m-2 " intent="warning">
-                  Acquista ora
-                </Button>
-              </div>
-            </div>
-          </Drawer>
-        </NavbarGroup>
-      </Navbar>
-      <Tabs
-        id="TabsExample"
-        selectedTabId="all"
-        className=" pl-4 pr-4 bg-gray-100"
-        large={true}
-      >
-        <Tab id="all" title="Tutte" large={true} />
-        <Tab id="bs" title="Bestseller" large={true} />
-        <Tab id="bc" title="Basic" large={true} />
-        <Tabs.Expander />
-      </Tabs>
-      <div className="flex justify-center flex-wrap">
-        <Card interactive={true} className="m-4 w-1/5">
-          <h1 className="text-2xl font-semibold m-2">Dispositivi Amazon</h1>
-          <img
-            src="https://images-eu.ssl-images-amazon.com/images/G/29/kindle/journeys/NjkzM2MxYWEt/NjkzM2MxYWEt-MzFhNzkxYTMt-w186._SY116_CB660760342_.jpg"
-            alt=""
-            className="object-cover w-full"
-          />
-          <Button className="m-2 ">scopri di più</Button>
-        </Card>
+    <div className="bg-indigo-500 rounded-t-md w-full h-1/6  flex flex-row justify-center items-center sticky">
+      <h1 className="font-semibold font-serif text-2xl text-gray-50 uppercase">
+        {props.name} List
+      </h1>
+    </div>
+  );
+}
+function TransactionCard(props: { value: number; date: string }) {
+  var dateRefact = DateTime.fromISO(props.date);
+  const className = classNames(
+    props.value > 0
+      ? 'text-2xl font-semibold mx-4 my-0 text-green-500 '
+      : 'text-2xl font-semibold mx-4 my-0 text-red-500',
+  );
 
-        <Card interactive={true} className="m-4 w-1/5">
-          <h1 className="text-2xl font-semibold m-2">Amazon Super</h1>
-          <img
-            src="https://images-eu.ssl-images-amazon.com/images/G/29/ITES_Amazon_Super/XCM_Manual_ORIGIN_1229035_1206048_IT_it_it_amazon_super_traffic_drivers_it_it_3145424_379x304_1X_it_IT._SY304_CB410658417_.jpg"
-            alt=""
-            className="object-cover w-full"
-          />
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-1/5">
-          <h1 className="text-2xl font-semibold m-2">Offerte in Moda</h1>
-          <img
-            src="https://images-eu.ssl-images-amazon.com/images/G/29/AmazonServices/Site/US/Product/FBA/Outlet/Merchandising/IT_Outlet_GW_MC_186x116_Evergreen_2021._SY116_CB656897980_.jpg"
-            alt=""
-            className="object-cover w-full"
-          />
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-1/5">
-          <h1 className="text-2xl font-semibold m-2">
-            Salute e cura dei marchi Amazon
-          </h1>
-          <img
-            src="https://images-eu.ssl-images-amazon.com/images/G/29/PBConsumables/GW/2021/XCM_Manual_1309063_1577659_uk_gw_pc_quad_image_card_1x_186x116_gb-en_ce3adbc5-30ff-409d-97ad-cd59ead11cc7._SY116_CB660372510_.jpg"
-            alt=""
-            className="object-cover w-full"
-          />
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-1/5">
-          <h1 className="text-2xl font-semibold m-2">
-            Accessori per elettronica
-          </h1>
-          <img
-            src="https://images-eu.ssl-images-amazon.com/images/G/29/UK-hq/2021/img/Amazon_Basics/XCM_CUTTLE_1308697_1575862_IT_3675381_186x116_1X_en_GB._SY116_CB659579760_.jpg"
-            alt=""
-            className="object-cover w-full"
-          />
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-1/5">
-          <h1 className="text-2xl font-semibold m-2">
-            Prodotti per la casa Made in Italy
-          </h1>
-          <img
-            src="https://images-eu.ssl-images-amazon.com/images/G/29/ACS/Made_in_Italy/2021/GW_Quad/mmonicel_GW_DQuad_textile_186x116._SY116_CB655386862_.jpg"
-            alt=""
-            className="object-cover w-full"
-          />
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-1/5">
-          <h1 className="text-2xl font-semibold m-2">
-            Offerte sugli accessori
-          </h1>
-          <img
-            src="https://images-eu.ssl-images-amazon.com/images/G/29/kindle/journeys/NmQ4ZGU2YjIt/NmQ4ZGU2YjIt-NjljNDMxODkt-w379._SY304_CB411538173_.jpg"
-            alt=""
-            className="object-cover w-full"
-          />
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-1/5">
-          <h1 className="text-2xl font-semibold m-2">Gioielli da donna</h1>
-          <img
-            src="https://images-eu.ssl-images-amazon.com/images/G/29/AMAZON-FASHION/2021/FASHION/FLIP/01_FEB/MERCH/GW/GIFTING/GW_DESK_QUAD_CARD_186x116_WMN_NECKLESS._SY116_CB658894135_.jpg"
-            alt=""
-            className="object-cover w-full"
-          />
-          <Button className="m-2">scopri di più</Button>
-        </Card>
+  return (
+    <div className="flex flex-row rounded-md bg-gray-50 w-full h-20 shadow-md justify-between items-center my-1 cursor-pointer transform transition-transform hover:scale-105 hover:bg-gray-100">
+      <div className="flex">
+        {/* <p className="text-2xl font-semibold mx-4">Icon </p> */}
+        <p className="text-2xl font-semibold mx-4 my-0">
+          {dateRefact.toLocaleString()}
+        </p>
       </div>
-
-      <div className="flex justify-center flex-wrap mt-5">
-        <Card interactive={true} className="m-4 w-2/5 flex-grow">
-          <h1 className="text-2xl font-semibold m-2">
-            Consigliati in base ai tuoi interessi
-          </h1>
-          <div className="flex">
-            <img
-              src="https://m.media-amazon.com/images/I/41PWkoT0grL._AC_SY200_.jpg"
-              alt=""
-              className="m-2"
-            />
-            <img
-              src="https://m.media-amazon.com/images/I/31MrZOmn1JL._AC_SY200_.jpg"
-              alt=""
-              className="m-2"
-            />
-            <img
-              src="https://m.media-amazon.com/images/I/41bfbuO-CqL._AC_SY200_.jpg"
-              alt=""
-              className="m-2"
-            />
-            <img
-              src="https://m.media-amazon.com/images/I/41BBJ4ZsKsL._AC_SY200_.jpg"
-              alt=""
-              className="m-2"
-            />
-            <img
-              src="https://m.media-amazon.com/images/I/41UG0BhADZL._AC_SY200_.jpg"
-              alt=""
-              className="m-2"
-            />
-            <img
-              src="https://m.media-amazon.com/images/I/41pOZehsVSL._AC_SY200_.jpg"
-              alt=""
-              className="m-2"
-            />
-            <img
-              src="https://m.media-amazon.com/images/I/31QI0tjebIL._AC_SY200_.jpg"
-              alt=""
-              className="m-2"
-            />
-            <img
-              src="https://m.media-amazon.com/images/I/41KTONmtJ5L._AC_SY200_.jpg"
-              alt=""
-              className="m-2"
-            />
-          </div>
-        </Card>
-      </div>
-
-      <div className="flex justify-center flex-wrap mt-5">
-        <Card interactive={true} className="m-4 w-2/5">
-          <h1 className="text-2xl font-semibold m-2">Tracciamento</h1>
-          <p className="m-2">Traccia i tuoi ordini</p>
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-2/5">
-          <h1 className="text-2xl font-semibold m-2">Impostazioni</h1>
-          <p className="m-2">Vai nelle impostazioni</p>
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-2/5">
-          <h1 className="text-2xl font-semibold m-2">Pagamenti</h1>
-          <p className="m-2">Scegli i pagamenti con carta</p>
-          <Button className="m-2">scopri di più</Button>
-        </Card>
-        <Card interactive={true} className="m-4 w-2/5">
-          <h1 className="text-2xl font-semibold m-2">Indirizzi</h1>
-          <p className="m-2">Scegli l'indirizzo di spedizione</p>
-          <Button className="m-2">scopri di più</Button>
-        </Card>
+      <p className={className}>{props.value}€</p>
+    </div>
+  );
+}
+function PeopleCard(props: {
+  name: String;
+  onClickUser: () => void;
+  onClickAdd: () => void;
+  balance: number;
+}) {
+  return (
+    <div
+      className="flex flex-row rounded-md bg-gray-50 w-full h-16 shadow-md  items-center my-2 cursor-pointer transform transition-transform hover:scale-105 hover:bg-gray-100"
+      onClick={props.onClickUser}
+    >
+      <div className="flex flex-row  items-center w-full">
+        {/* <p className="text-2xl font-semibold mx-4">Icon </p> */}
+        <p className="text-1xl font-semibold mx-4 my-0 text-gray-600 ">
+          {props.name}
+        </p>
       </div>
     </div>
   );
 }
+function App() {
+  const [transaction, setTransaction] = useState<DataTransaction[]>([]);
+  const [isOpenDialogEarn, setIsOpenDialogEarn] = useState<boolean>(false);
+  const [dataEarnUser, setDataEarnUser] = useState<string>('');
+  const [dataEarnCredit, setDataEarnCredit] = useState<number>(0);
+  const [isOpenDialogUsed, setIsOpenDialogUsed] = useState<boolean>(false);
+  const [user, setUser] = useState<string[]>([]);
+  const [balance, setBalance] = useState<number>(0);
+  const [selectedItem, setSelectedItem] = useState<string>('');
+  let userShow: string[] = [];
 
+  useEffect(async () => {
+    const resultTransaction = await getTransaction(selectedItem);
+    const resultUser = await getUser();
+    setTransaction(resultTransaction);
+    resultUser.map((data, index) => {
+      if (!userShow.includes(data.userId)) {
+        userShow.push(data.userId);
+      }
+    });
+    let resultBalance = await getBalance(selectedItem);
+    setBalance(resultBalance);
+    setUser(userShow);
+  }, [selectedItem]);
+  console.log(user);
+
+  return (
+    <div className="bg-gray-300 w-screen h-screen flex flex-row justify-center items-center">
+      <Dialog
+        icon="add"
+        isOpen={isOpenDialogEarn}
+        isCloseButtonShown={true}
+        onClose={() => setIsOpenDialogEarn(false)}
+        onClosing={() => setIsOpenDialogEarn(false)}
+        onClosed={() => setIsOpenDialogEarn(false)}
+        canOutsideClickClose={true}
+        title="Earn Credit"
+      >
+        <div className="m-5 flex flex-row justify-around">
+          <div>
+            <label className="ml-2">User</label>
+            <InputGroup
+              id="text-input"
+              placeholder="User"
+              round={true}
+              onChange={(event) => setDataEarnUser(event.target.value)}
+            />
+          </div>
+          <div>
+            <label className="ml-2">Amount</label>
+            <InputGroup
+              placeholder="Amount"
+              round={true}
+              onChange={(event) =>
+                setDataEarnCredit(Number(event.target.value))
+              }
+            />
+          </div>
+        </div>
+        <div className={Classes.DIALOG_FOOTER}>
+          <div className={Classes.DIALOG_FOOTER_ACTIONS}>
+            <Button onClick={() => setIsOpenDialogEarn(false)}>Close</Button>
+            <Button
+              onClick={() => {
+                setIsOpenDialogEarn(false);
+                earnCredit(dataEarnUser, dataEarnCredit);
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+      <div className="w-1/6 m-5 max-w-md h-3/6 ">
+        <div className="bg-gray-200 rounded-md w-full h-full shadow-xl ">
+          <Header name={'user'} />
+          <div className="overflow-y-auto h-5/6 overflow-x-hidden py-1 px-2 ">
+            {user.map((data, index) => {
+              return (
+                <PeopleCard
+                  name={data}
+                  balance={balance}
+                  onClickUser={() => setSelectedItem(data)}
+                  onClickAdd={() => setSelectedItem(data)}
+                />
+              );
+            })}
+          </div>
+        </div>
+        <div className="w-full flex justify-evenly">
+          <Button
+            className="m-2"
+            intent="success"
+            outlined={true}
+            onClick={() => setIsOpenDialogEarn(true)}
+          >
+            Earn Credit
+          </Button>
+          <Button
+            className="m-2"
+            intent="danger"
+            outlined={true}
+            onClick={() => setIsOpenDialogUsed(true)}
+          >
+            Use Credit
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-gray-200 rounded-md w-1/3 max-w-md h-4/6 shadow-xl ">
+        <Header name={'transaction'} />
+        <div className="overflow-y-auto h-5/6 overflow-x-hidden">
+          <div className="flex flex-col   text-gray-600 py-1 px-3 ">
+            {transaction.map((data, index) => (
+              <TransactionCard value={data.amount} date={data.creditDate} />
+            ))}
+          </div>
+        </div>
+        <p className="text-1xl font-semibold mx-3 text-center text-gray-800">
+          This account has {balance} credits
+        </p>
+      </div>
+    </div>
+  );
+}
 export default App;

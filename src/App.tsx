@@ -1,14 +1,26 @@
 import React, { useState, useReducer, useEffect } from 'react';
 import './App.css';
-/* import _, { result } from 'lodash/fp';
- */ import classNames from 'classnames';
+/* import _, { result } from 'lodash/fp';*/
+import classNames from 'classnames';
 import { DateTime } from 'luxon';
-/* import { v4 } from 'uuid';
- */ import { GraphQLClient, gql } from 'graphql-request';
+/* import { v4 } from 'uuid';*/
+import { GraphQLClient, gql } from 'graphql-request';
 import 'normalize.css';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
 import { Button, Classes, Dialog, InputGroup } from '@blueprintjs/core';
+
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  useQuery,
+  useSubscription,
+} from '@apollo/client';
+import { split, HttpLink } from '@apollo/client';
+import { getMainDefinition } from '@apollo/client/utilities';
+import { WebSocketLink } from '@apollo/client/link/ws';
+import { SubscriptionClient } from 'subscriptions-transport-ws';
 
 interface DataTransaction {
   id: string;
@@ -17,6 +29,57 @@ interface DataTransaction {
   time: string;
   creditDate: string;
   delayed: boolean;
+}
+
+async function subscription(response: string) {
+  const GRAPHQL_ENDPOINT = 'ws://dev.graphql-v2.keix.com/graphql';
+  const httpLink = new HttpLink({
+    uri: GRAPHQL_ENDPOINT,
+  });
+
+  const wsLink = new WebSocketLink({
+    uri: GRAPHQL_ENDPOINT,
+    options: {
+      reconnect: true,
+    },
+  });
+  const splitLink = split(
+    ({ query }) => {
+      const definition = getMainDefinition(query);
+      return (
+        definition.kind === 'OperationDefinition' &&
+        definition.operation === 'subscription'
+      );
+    },
+    wsLink,
+    httpLink,
+  );
+  const client = new ApolloClient({
+    link: splitLink,
+    cache: new InMemoryCache(),
+  });
+
+  const query = gql`
+  subscription {
+    subscribeForEvents(
+      id: "${response}"
+    ) {
+      id
+      stream_name
+      type
+      time
+      position
+      global_position
+      data
+    }
+  }
+  `;
+  function LatestComment() {
+    const { data, loading } = useSubscription(query, {
+      variables: { response },
+    });
+    return <h4>New comment: {!loading && data.commentAdded.content}</h4>;
+  }
 }
 
 async function earnCredit(userId: string, amount: number): Promise<number> {

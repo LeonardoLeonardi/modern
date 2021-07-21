@@ -4,7 +4,8 @@ import './App.css';
 import classNames from 'classnames';
 import { DateTime } from 'luxon';
 /* import { v4 } from 'uuid';*/
-import { GraphQLClient, gql } from 'graphql-request';
+import { GraphQLClient } from 'graphql-request';
+import gql from 'graphql-tag';
 import 'normalize.css';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
@@ -31,8 +32,8 @@ interface DataTransaction {
   delayed: boolean;
 }
 
-async function subscription(response: string) {
-  const GRAPHQL_ENDPOINT = 'ws://dev.graphql-v2.keix.com/graphql';
+async function subscriptionApollo(response: string) {
+  const GRAPHQL_ENDPOINT = 'wss://dev.graphql-v2.keix.com/graphql';
   const httpLink = new HttpLink({
     uri: GRAPHQL_ENDPOINT,
   });
@@ -59,27 +60,28 @@ async function subscription(response: string) {
     cache: new InMemoryCache(),
   });
 
-  const query = gql`
-  subscription {
-    subscribeForEvents(
-      id: "${response}"
-    ) {
-      id
-      stream_name
-      type
-      time
-      position
-      global_position
-      data
-    }
-  }
-  `;
-  function LatestComment() {
-    const { data, loading } = useSubscription(query, {
-      variables: { response },
+  client
+    .subscribe({
+      query: gql`
+        subscription($id: String!) {
+          subscribeForEvents(id: $id) {
+            id
+            stream_name
+            type
+            time
+            position
+            global_position
+            data
+          }
+        }
+      `,
+      variables: { id: response },
+    })
+    .subscribe({
+      next(data) {
+        console.log(data);
+      },
     });
-    return <h4>New comment: {!loading && data.commentAdded.content}</h4>;
-  }
 }
 
 async function earnCredit(userId: string, amount: number): Promise<number> {
@@ -95,6 +97,7 @@ async function earnCredit(userId: string, amount: number): Promise<number> {
   const client = new GraphQLClient(endpoint, { headers: {} });
   const graph = client.request(query).then((data) => {
     return data.getUserBalance;
+    console.log(data.getUserBalance);
   });
   return await graph;
 }
@@ -155,7 +158,7 @@ async function getUser(): Promise<DataTransaction[]> {
 }
 async function getTransaction(filter: string): Promise<DataTransaction[]> {
   const endpoint = 'https://dev.graphql-v2.keix.com/graphql';
-  let query = '';
+  let query: any = '';
   if (filter.length > 0) {
     query = gql`
     query{

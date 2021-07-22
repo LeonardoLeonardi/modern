@@ -9,7 +9,15 @@ import gql from 'graphql-tag';
 import 'normalize.css';
 import '@blueprintjs/core/lib/css/blueprint.css';
 import '@blueprintjs/icons/lib/css/blueprint-icons.css';
-import { Button, Classes, Dialog, InputGroup } from '@blueprintjs/core';
+import {
+  Button,
+  Classes,
+  Dialog,
+  InputGroup,
+  Position,
+  Toast,
+  Toaster,
+} from '@blueprintjs/core';
 
 import {
   ApolloClient,
@@ -32,18 +40,20 @@ interface DataTransaction {
   delayed: boolean;
 }
 
-async function subscriptionApollo(response: string) {
-  const GRAPHQL_ENDPOINT = 'wss://dev.graphql-v2.keix.com/graphql';
+export const getSubscribe = async function (stringa: string): Promise<string> {
+  const GRAPHQL_ENDPOINT2 = 'wss://dev.graphql-v2.keix.com/graphql';
+
   const httpLink = new HttpLink({
-    uri: GRAPHQL_ENDPOINT,
+    uri: 'http://dev.graphql-v2.keix.com/graphql',
   });
 
   const wsLink = new WebSocketLink({
-    uri: GRAPHQL_ENDPOINT,
+    uri: GRAPHQL_ENDPOINT2,
     options: {
       reconnect: true,
     },
   });
+
   const splitLink = split(
     ({ query }) => {
       const definition = getMainDefinition(query);
@@ -55,65 +65,78 @@ async function subscriptionApollo(response: string) {
     wsLink,
     httpLink,
   );
-  const client = new ApolloClient({
+
+  const clientApollo = new ApolloClient({
     link: splitLink,
     cache: new InMemoryCache(),
   });
 
-  client
-    .subscribe({
-      query: gql`
-        subscription($id: String!) {
-          subscribeForEvents(id: $id) {
-            id
-            stream_name
-            type
-            time
-            position
-            global_position
-            data
+  return new Promise((resolve, reject) => {
+    const graph = clientApollo
+      .subscribe({
+        query: gql`
+          subscription($id: String!) {
+            subscribeForEvents(id: $id) {
+              id
+              stream_name
+              type
+              time
+              position
+              global_position
+              data
+            }
           }
-        }
-      `,
-      variables: { id: response },
-    })
-    .subscribe({
-      next(data) {
-        console.log(data);
-      },
-    });
-}
+        `,
+        variables: { id: stringa },
+      })
+      .subscribe({
+        next(data) {
+          if (
+            data.data.subscribeForEvents.type === 'CREDITS_EARNED' ||
+            data.data.subscribeForEvents.type === 'CREDITS_USED'
+          ) {
+            resolve('Transazione completata');
+          } else if (data.data.subscribeForEvents.type === 'CREDITS_ERROR') {
+            resolve(data.data.subscribeForEvents.data.type);
+          }
+        },
+        error(err) {
+          reject(err);
+        },
+      });
+  });
+};
 
-async function earnCredit(userId: string, amount: number): Promise<number> {
+async function earnCredit(userId: string, amount: number): Promise<string> {
   const endpoint = 'https://dev.graphql-v2.keix.com/graphql';
 
   const query = gql`
     mutation {
-      earnCredits(id: "${userId}",amount:${amount})
+      earnCredits(id:"${userId}",amount:${amount})
     }
   `;
 
   // ... or create a GraphQL client instance to send requests
   const client = new GraphQLClient(endpoint, { headers: {} });
   const graph = client.request(query).then((data) => {
-    return data.getUserBalance;
-    console.log(data.getUserBalance);
+    console.log(data);
+    return data.earnCredits;
   });
   return await graph;
 }
-async function useCredit(userId: string, amount: number): Promise<number> {
+async function useCredit(userId: string, amount: number): Promise<string> {
   const endpoint = 'https://dev.graphql-v2.keix.com/graphql';
 
   const query = gql`
     mutation {
-      useCredits(id: "${userId}",amount:${amount})
+      useCredits(id:"${userId}",amount:${amount})
     }
   `;
 
   // ... or create a GraphQL client instance to send requests
   const client = new GraphQLClient(endpoint, { headers: {} });
   const graph = client.request(query).then((data) => {
-    return data.getUserBalance;
+    return data.useCredits;
   });
   return await graph;
 }
@@ -248,7 +271,13 @@ function PeopleCard(props: {
     </div>
   );
 }
-
+let toaster: Toaster;
+function refHandlers(ref: Toaster) {
+  toaster = ref;
+}
+function addToast(props: { mess: string }) {
+  toaster.show({ message: props.mess, intent: 'warning' });
+}
 function App() {
   const [transaction, setTransaction] = useState<DataTransaction[]>([]);
   const [isOpenDialogEarn, setIsOpenDialogEarn] = useState<boolean>(false);
@@ -277,6 +306,7 @@ function App() {
 
   return (
     <div className="bg-gray-300 w-screen h-screen flex flex-row justify-center items-center">
+      <Toaster position={Position.TOP} ref={refHandlers}></Toaster>
       {/* DIALOG USE CREDIT */}
       <Dialog
         icon="remove"
@@ -312,9 +342,12 @@ function App() {
             <Button onClick={() => setIsOpenDialogUsed(false)}>Close</Button>
             <Button
               intent="success"
-              onClick={() => {
+              onClick={async () => {
                 setIsOpenDialogUsed(false);
-                useCredit(dataUser, dataCredit);
+                let Result = await getSubscribe(
+                  await useCredit(dataUser, dataCredit),
+                );
+                addToast({ mess: Result });
               }}
             >
               Save
@@ -357,9 +390,12 @@ function App() {
             <Button onClick={() => setIsOpenDialogEarn(false)}>Close</Button>
             <Button
               intent="success"
-              onClick={() => {
+              onClick={async () => {
                 setIsOpenDialogEarn(false);
-                earnCredit(dataUser, dataCredit);
+                let Result = await getSubscribe(
+                  await earnCredit(dataUser, dataCredit),
+                );
+                addToast({ mess: Result });
               }}
             >
               Save
